@@ -6,6 +6,7 @@ const multer = require("multer");
 const app = express();
 const upload = multer();
 
+const AppError = require("./utilities/AppError");
 const { getRequestTime } = require("./middleware/common.middleware");
 
 mongoose
@@ -22,6 +23,7 @@ mongoose
 
 const toursRoute = require("./routers/tours.route");
 const usersRoute = require("./routers/users.route");
+const { gobalErrorHandle } = require("./controllers/error.controler");
 
 app.use(express.json());
 app.use(express.static(`${__dirname}/public`));
@@ -35,5 +37,25 @@ app.use(upload.none());
 
 app.use("/api/v1/tours", toursRoute);
 app.use("/api/v1/users", usersRoute);
+
+// handling unhandle routers
+app.all("*", (req, res, next) => {
+  // 1] normal
+  // res.status(404).json({
+  //   status: "fail",
+  //   message: `Can't find ${req.originalUrl} on the server`,
+  // });
+  // 2] dont use class
+  // let err = new Error(`Can't find ${req.originalUrl} on the server`);
+  // err.status = "fail";
+  // err.statusCode = 404;
+  // next(err);
+
+  // 3] use class
+  next(new AppError(`Can't find ${req.originalUrl} on the server`, 404));
+});
+
+// error handling
+app.use(gobalErrorHandle);
 
 module.exports = app;
