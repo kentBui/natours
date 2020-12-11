@@ -23,6 +23,7 @@ const userShcema = new mongoose.Schema({
     type: String,
     required: [true, "You need enter password"],
     minlength: 6,
+    select: false,
   },
   passwordConfirm: {
     type: String,
@@ -48,5 +49,12 @@ userShcema.pre("save", async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
+
+userShcema.methods.correctPassword = async function (
+  candicatePassword,
+  userPassword
+) {
+  return await bcrypt.compare(candicatePassword, userPassword);
+};
 
 module.exports = mongoose.model("User", userShcema);

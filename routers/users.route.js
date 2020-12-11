@@ -3,7 +3,6 @@ const { signup, signin } = require("../controllers/auth.controler");
 const {
   updateUser,
   deleteUser,
-  createUser,
   getOneUser,
   getAllUsers,
 } = require("../controllers/users.controller");
@@ -12,11 +11,9 @@ const router = express.Router();
 
 router.get("/", getAllUsers);
 
-router.post("/signup", signup);
+router.post("/signup", signup); // create user
 
-router.post("/signin", signin);
-
-router.post("/create", createUser);
+router.post("/signin", signin); // login user
 
 router.get("/:id", getOneUser);
 

@@ -98,6 +98,7 @@ module.exports.getAllTours = async (req, res) => {
 module.exports.getOneTour = async (req, res) => {
   try {
     const tour = await Tour.findById(req.params.id);
+    console.log(tour);
     // Tour.findOne({_id: req.params.id})
     res.status(200).json({
       status: "success",
