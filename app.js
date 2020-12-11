@@ -24,6 +24,7 @@ mongoose
 const toursRoute = require("./routers/tours.route");
 const usersRoute = require("./routers/users.route");
 const { gobalErrorHandle } = require("./controllers/error.controler");
+const { requireSignin } = require("./controllers/auth.controler");
 
 app.use(express.json());
 app.use(express.static(`${__dirname}/public`));
@@ -35,7 +36,7 @@ if (process.env.NODE_ENV === "develope") {
 app.use(getRequestTime);
 app.use(upload.none());
 
-app.use("/api/v1/tours", toursRoute);
+app.use("/api/v1/tours", requireSignin, toursRoute);
 app.use("/api/v1/users", usersRoute);
 
 // handling unhandle routers

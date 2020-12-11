@@ -70,3 +70,34 @@ module.exports.signin = async (req, res) => {
     });
   }
 };
+
+module.exports.requireSignin = async (req, res, next) => {
+  try {
+    // 1] get token and check it's there
+    let token;
+    // console.log(req.headers);
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+    console.log(token);
+    if (!token) {
+      res.status(400).json({
+        status: "fail",
+        message: "You are not loggoed in, Please log in to access",
+      });
+    }
+
+    // 2] verification token
+    // 3] check if user still exists
+    // 4] check if user change password of the token was issued
+    next();
+  } catch (error) {
+    res.status(400).json({
+      status: "fail",
+      message: "You don't exists",
+    });
+  }
+};
