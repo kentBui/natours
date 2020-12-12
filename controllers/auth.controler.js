@@ -1,3 +1,4 @@
+const util = require("util"); // create promisify or callbackify
 const jwt = require("jsonwebtoken");
 const User = require("../model/user.model");
 
@@ -42,20 +43,29 @@ module.exports.signin = async (req, res) => {
     // 2] check if user exists && password is correct
 
     const user = await User.findOne({ email }).select("+password");
-    console.log(user);
+    // console.log(user);
+    // ] dont find user with email
+    if (!user)
+      return res.status(401).json({
+        status: "fail",
+        message: "Incorrect email",
+      });
 
     const correct = await user.correctPassword(password, user.password);
 
-    if (!user || !correct)
+    if (!correct)
       return res.status(401).json({
         status: "fail",
-        message: "Incorrect email or password",
+        message: "Incorrect password",
       });
 
     // 3] if everything is ok send token to client
     let token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN, //
     });
+
+    // let decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // console.log(decoded);
 
     res.status(200).json({
       status: "success",
@@ -72,32 +82,46 @@ module.exports.signin = async (req, res) => {
 };
 
 module.exports.requireSignin = async (req, res, next) => {
+  // 1] get token and check it's there
   try {
-    // 1] get token and check it's there
-    let token;
-    // console.log(req.headers);
     if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-    console.log(token);
-    if (!token) {
-      res.status(400).json({
-        status: "fail",
-        message: "You are not loggoed in, Please log in to access",
-      });
-    }
+      !req.headers.authorization ||
+      !req.headers.authorization.startsWith("Bearer")
+    )
+      return res.status(400).json({ message: "Authorization is required" });
+    const token = req.headers.authorization.split(" ")[1];
 
     // 2] verification token
+    // let decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // console.log(decoded);
+    let decoded = await util.promisify(jwt.verify)(
+      token,
+      process.env.JWT_SECRET
+    );
+    // need to remember
+
     // 3] check if user still exists
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser)
+      return res.status(403).json({
+        status: "fail",
+        message: "The user doest not exist",
+      });
+
     // 4] check if user change password of the token was issued
+    if (currentUser.changedPasswordAfter(decoded.iat))
+      return res.status(401).json({
+        status: "error",
+        message: "User recently changed password, Pease login again",
+      });
+
+    req.user = currentUser;
+
     next();
   } catch (error) {
-    res.status(400).json({
+    res.status(401).json({
       status: "fail",
-      message: "You don't exists",
+      message: "Something went wrong, Please login again",
     });
   }
 };
