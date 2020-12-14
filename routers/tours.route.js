@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireSignin, restrictTo } = require("../controllers/auth.controler");
 const {
   getAllTours,
   getOneTour,
@@ -25,7 +26,12 @@ router.get("/:id", getOneTour);
 
 router.patch("/:id", updateTour);
 
-router.delete("/:id", deleteTour);
+router.delete(
+  "/:id",
+  requireSignin,
+  restrictTo("admin", "lead-guide"),
+  deleteTour
+);
 
 router.post("/create", createTour);
 

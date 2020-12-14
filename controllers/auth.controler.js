@@ -16,6 +16,7 @@ module.exports.signup = async (req, res) => {
         user: {
           name: newUser.name,
           email: newUser.email,
+          role: newUser.role,
         },
         token,
       },
@@ -124,4 +125,19 @@ module.exports.requireSignin = async (req, res, next) => {
       message: "Something went wrong, Please login again",
     });
   }
+};
+
+module.exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    // roles ['admin','lead-guide']
+    // default 'user'
+
+    if (!roles.includes(req.user.role))
+      return res.status(403).json({
+        status: "error",
+        message: "You do not have permission to perform this action",
+      });
+
+    next();
+  };
 };
