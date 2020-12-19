@@ -2,6 +2,7 @@ const express = require("express");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
 const multer = require("multer");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const upload = multer();
@@ -21,6 +22,13 @@ mongoose
     console.log("DB connected");
   });
 
+//use limiter to limit request send from this device
+const appLimit = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 100,
+  message: "Too many request from this Ip, please try again in another time",
+});
+
 const toursRoute = require("./routers/tours.route");
 const usersRoute = require("./routers/users.route");
 const { gobalErrorHandle } = require("./controllers/error.controler");
@@ -35,6 +43,8 @@ if (process.env.NODE_ENV === "develope") {
 
 app.use(getRequestTime);
 app.use(upload.none());
+
+app.use("/api/v1", appLimit);
 
 app.use("/api/v1/tours", requireSignin, toursRoute);
 app.use("/api/v1/users", usersRoute);
