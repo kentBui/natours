@@ -117,6 +117,19 @@ module.exports.updateUser = async (req, res) => {
     });
   }
 };
+
+module.exports.deleteMe = async (req, res, next) => {
+  // 1] when want to delete => dont need delete out of db, only can set inactive this
+  // user. when user signup again => active this user again
+  // 2]
+  await User.findByIdAndUpdate(req.user.id, { active: false });
+
+  res.status(404).json({
+    status: "success",
+    message: "You delete successfull",
+  });
+};
+
 module.exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);

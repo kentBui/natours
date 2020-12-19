@@ -13,6 +13,7 @@ const {
   getOneUser,
   getAllUsers,
   updateMe,
+  deleteMe,
 } = require("../controllers/users.controller");
 
 const router = express.Router();
@@ -30,6 +31,8 @@ router.patch("/resetPassword/:token", resetPassword);
 router.patch("/updateMyPassword", requireSignin, updatedPassword);
 
 router.patch("/updateMe", requireSignin, updateMe);
+
+router.delete("/deleteMe", requireSignin, deleteMe);
 
 router.get("/:id", getOneUser);
 
