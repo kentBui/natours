@@ -24,7 +24,12 @@ router.get("/monthly-plan/:year", getMonthlyPlan);
 
 router.get("/:id", getOneTour);
 
-router.patch("/:id", updateTour);
+router.patch(
+  "/:id",
+  requireSignin,
+  restrictTo("admin", "lead-guide"),
+  updateTour
+);
 
 router.delete(
   "/:id",

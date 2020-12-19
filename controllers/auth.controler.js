@@ -1,30 +1,37 @@
+const crypto = require("crypto");
 const util = require("util"); // create promisify or callbackify
 const jwt = require("jsonwebtoken");
 const User = require("../model/user.model");
+const sendEmail = require("../utilities/email");
+
+const signToken = (user) => {
+  return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN, //
+  });
+};
+
+const createAndSendToken = (user, statusCode, res) => {
+  const token = signToken(user);
+
+  res.status(statusCode).json({
+    status: "success",
+    token,
+    data: {
+      user,
+    },
+  });
+};
 
 module.exports.signup = async (req, res) => {
   try {
     const newUser = await User.create(req.body);
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN, //
-    });
-
-    res.status(201).json({
-      status: "success",
-      data: {
-        user: {
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-        },
-        token,
-      },
-    });
+    createAndSendToken(newUser, 201, res);
   } catch (error) {
     res.status(400).json({
       status: "fail",
-      message: error,
+      message: "some thing went wrong",
+      error,
     });
   }
 };
@@ -61,23 +68,26 @@ module.exports.signin = async (req, res) => {
       });
 
     // 3] if everything is ok send token to client
-    let token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN, //
-    });
+    // let token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    //   expiresIn: process.env.JWT_EXPIRES_IN, //
+    // });
 
     // let decoded = jwt.verify(token, process.env.JWT_SECRET);
     // console.log(decoded);
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        token,
-      },
-    });
+    // res.status(200).json({
+    //   status: "success",
+    //   data: {
+    //     token,
+    //   },
+    // });
+
+    createAndSendToken(user, 200, res);
   } catch (error) {
     res.status(400).json({
       status: "fail",
-      message: error,
+      message: "some thing went wrong",
+      error,
     });
   }
 };
@@ -123,6 +133,7 @@ module.exports.requireSignin = async (req, res, next) => {
     res.status(401).json({
       status: "fail",
       message: "Something went wrong, Please login again",
+      error,
     });
   }
 };
@@ -140,4 +151,144 @@ module.exports.restrictTo = (...roles) => {
 
     next();
   };
+};
+
+module.exports.forgotPassword = async (req, res, next) => {
+  try {
+    // 1] get user based on posted email
+    const user = await User.findOne({ email: req.body.email });
+    console.log(user);
+
+    if (!user)
+      return res.status(404).json({
+        status: "Error",
+        message: "There is no user with this email",
+      });
+
+    // 2] generate the random reset token
+    const resetToken = await user.createPasswordResetToken();
+    console.log(resetToken);
+
+    await user.save({ validateBeforeSave: false });
+
+    // 3] send it to user's email
+    // get url for reset pass
+    const resetURL = `${req.protocol}://${req.get(
+      "host"
+    )}/api/v1/users/resetPassword/${resetToken}`;
+    // sending message
+    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to : ${resetURL}. \n If you didn't forget your password, please ignore this email!`;
+    try {
+      // use nodemailer to send email
+      await sendEmail({
+        email: user.email,
+        subject: "Your password reset token (validated in 10 min)",
+        message,
+      });
+
+      res.status(200).json({
+        status: "success",
+        message: "Token sent to email!",
+      });
+    } catch (error) {
+      // catch error when sending email
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        status: "error",
+        message: "There were an error sending email",
+        error,
+      });
+    }
+  } catch (error) {
+    res.status(401).json({
+      status: "fail",
+      message: "Something went wrong, Please login again",
+      error,
+    });
+  }
+};
+
+module.exports.resetPassword = async (req, res, next) => {
+  try {
+    // 1] get user based on the token
+    // console.log(req.params.token);
+    const hasdedToken = crypto
+      .createHash("sha256")
+      .update(req.params.token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hasdedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+    // console.log(user);
+
+    // 2] if token has not expired, and there is user set the new password
+    if (!user)
+      return res.status(400).json({
+        status: "error",
+        message: "Token is invalid or has expired",
+      });
+
+    user.password = req.body.password;
+    user.passwordConfirm = req.body.passwordConfirm;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    // user.passwordChangedAt = new Date()
+
+    await user.save();
+    // 3] update changedpasswordat property for the user
+
+    // 4] log the user in, sen jwt
+    createAndSendToken(user, 200, res);
+  } catch (error) {
+    res.status(401).json({
+      status: "fail",
+      message: "Something went wrong, Please send email again",
+      error,
+    });
+  }
+};
+
+module.exports.updatedPassword = async (req, res, next) => {
+  try {
+    // 1] get user from collection
+    console.log(req.user);
+    const user = await User.findById(req.user.id).select("+password");
+
+    // 2] check if posted password is correct
+    const { oldPassword, newPassword, newPasswordConfirm } = req.body;
+    if (!oldPassword || !newPassword || !newPasswordConfirm) {
+      return res.status(401).json({
+        status: "error",
+        message: "Your need enter old or new password",
+      });
+    }
+
+    if (!(await user.correctPassword(oldPassword, user.password))) {
+      return res.status(401).json({
+        status: "error",
+        message: "Your current password is wrong",
+      });
+    }
+
+    // 3] if so, update password
+    user.password = newPassword;
+    user.passwordConfirm = newPasswordConfirm;
+
+    await user.save();
+
+    // 4] log user in send jwt
+    createAndSendToken(user, 200, res);
+  } catch (error) {
+    res.status(401).json({
+      status: "fail",
+      message: "Something went wrong, Please send password again",
+      error,
+    });
+  }
 };
