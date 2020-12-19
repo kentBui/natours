@@ -99,7 +99,12 @@ module.exports.requireSignin = async (req, res, next) => {
       !req.headers.authorization ||
       !req.headers.authorization.startsWith("Bearer")
     )
-      return res.status(400).json({ message: "Authorization is required" });
+      return res
+        .status(400)
+        .json({
+          status: "error",
+          message: "Authorization is required, please login to get access",
+        });
     const token = req.headers.authorization.split(" ")[1];
 
     // 2] verification token
