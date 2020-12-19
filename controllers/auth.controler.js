@@ -13,6 +13,21 @@ const signToken = (user) => {
 const createAndSendToken = (user, statusCode, res) => {
   const token = signToken(user);
 
+  // send cookie to automatic resend each request
+
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 60 * 60 * 1000
+    ),
+    httpOnly: true, //cannot access and modified in any way by the browser
+  };
+
+  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+
+  res.cookie("jwt", token, cookieOptions);
+
+  user.password = undefined; // remove password in the output
+
   res.status(statusCode).json({
     status: "success",
     token,
@@ -99,12 +114,10 @@ module.exports.requireSignin = async (req, res, next) => {
       !req.headers.authorization ||
       !req.headers.authorization.startsWith("Bearer")
     )
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "Authorization is required, please login to get access",
-        });
+      return res.status(400).json({
+        status: "error",
+        message: "Authorization is required, please login to get access",
+      });
     const token = req.headers.authorization.split(" ")[1];
 
     // 2] verification token
