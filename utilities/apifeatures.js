@@ -23,6 +23,7 @@ class APIfeatures {
     console.log("after replace:", queryStr);
 
     this.query = this.query.find(JSON.parse(queryStr));
+    // console.log(this.query);
 
     return this;
   }

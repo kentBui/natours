@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
 
 const app = express();
 const upload = multer();
@@ -32,10 +34,18 @@ const appLimit = rateLimit({
 
 const toursRoute = require("./routers/tours.route");
 const usersRoute = require("./routers/users.route");
+const reviewRoute = require("./routers/review.route");
 const { gobalErrorHandle } = require("./controllers/error.controler");
 const { requireSignin } = require("./controllers/auth.controler");
 
 app.use(express.json({ limit: "10kb" }));
+
+// data sanitization against Nosql query injection
+app.use(mongoSanitize());
+
+// data sanitization against xss
+app.use(xss());
+
 app.use(express.static(`${__dirname}/public`));
 
 app.use(helmet()); // helmet help you secure express app by setting various http header
@@ -52,6 +62,7 @@ app.use("/api", appLimit); // limit request from same ip
 
 app.use("/api/v1/tours", requireSignin, toursRoute);
 app.use("/api/v1/users", usersRoute);
+app.use("/api/v1/reviews", reviewRoute);
 
 // handling unhandle routers
 app.all("*", (req, res, next) => {
