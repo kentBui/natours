@@ -1,5 +1,6 @@
 const express = require("express");
 const { requireSignin, restrictTo } = require("../controllers/auth.controler");
+const { createReview } = require("../controllers/review.controller");
 const {
   getAllTours,
   getOneTour,
@@ -39,5 +40,17 @@ router.delete(
 );
 
 router.post("/create", createTour);
+
+// => nested route
+// POST / tour/1234/reviews
+// GET /tour/123/reviews
+// GET /tour/123/reviews/24719
+
+router.post(
+  "/:tourId/reviews/",
+  requireSignin,
+  restrictTo("user"),
+  createReview
+);
 
 module.exports = router;
