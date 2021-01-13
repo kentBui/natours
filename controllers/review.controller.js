@@ -27,6 +27,7 @@ module.exports.getAllReviews = async (req, res) => {
 
 module.exports.createReview = async (req, res) => {
   try {
+    console.log(req.params.tourId);
     if (!req.body.tour) req.body.tour = req.params.tourId;
     if (!req.body.user) req.body.user = req.user.id;
 

@@ -12,9 +12,17 @@ const {
   getMonthlyPlan,
 } = require("../controllers/tours.controller");
 
+const reviewRoute = require("./review.route");
+
 const router = express.Router();
 
 router.get("/", getAllTours);
+// => nested route
+// POST / tour/1234/reviews
+// GET /tour/123/reviews
+// GET /tour/123/reviews/24719
+
+router.use("/:tourId/reviews", reviewRoute);
 
 router.get("/top-5-tours", aliasTopTours, getAllTours);
 // route for alias find with condition you know
@@ -40,17 +48,5 @@ router.delete(
 );
 
 router.post("/create", createTour);
-
-// => nested route
-// POST / tour/1234/reviews
-// GET /tour/123/reviews
-// GET /tour/123/reviews/24719
-
-router.post(
-  "/:tourId/reviews/",
-  requireSignin,
-  restrictTo("user"),
-  createReview
-);
 
 module.exports = router;

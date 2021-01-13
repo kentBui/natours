@@ -6,10 +6,13 @@ const {
   createReview,
 } = require("../controllers/review.controller");
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
+// mergeParams for another params like tourId
+// POST / tour/1234/reviews
+// POST /reviews
 
 router.get("/", requireSignin, getAllReviews);
 
-router.post("/create", requireSignin, restrictTo("user"), createReview);
+router.post("/", requireSignin, restrictTo("user"), createReview);
 
 module.exports = router;
