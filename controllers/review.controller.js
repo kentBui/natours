@@ -2,7 +2,9 @@ const Review = require("../model/reviews.model");
 
 module.exports.getAllReviews = async (req, res) => {
   try {
-    const reviews = await Review.find();
+    let filter = {};
+    if (req.params.tourId) filter = { tour: req.params.tourId };
+    const reviews = await Review.find(filter);
 
     if (reviews.length === 0)
       return res.status(400).json({

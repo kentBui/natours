@@ -9,6 +9,7 @@ const {
 const router = express.Router({ mergeParams: true });
 // mergeParams for another params like tourId
 // POST / tour/1234/reviews
+// GET / tour/1234/reviews
 // POST /reviews
 
 router.get("/", requireSignin, getAllReviews);
