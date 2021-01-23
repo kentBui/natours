@@ -1,5 +1,6 @@
 const User = require("../model/user.model");
 const APIfeatures = require("../utilities/apifeatures");
+const { deleteOne, updateOne } = require("./handleFactory");
 
 const filterObj = (obj, ...alowFields) => {
   const newObj = {};
@@ -35,6 +36,11 @@ module.exports.getAllUsers = async (req, res) => {
       },
     });
   }
+};
+
+module.exports.getMe = (req, res, next) => {
+  req.params.id = req.user.id;
+  next();
 };
 
 module.exports.getOneUser = async (req, res) => {
@@ -94,29 +100,31 @@ module.exports.updateMe = async (req, res, next) => {
   }
 };
 
-module.exports.updateUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+// module.exports.updateUser = async (req, res) => {
+//   try {
+//     const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+//       new: true,
+//       runValidators: true,
+//     });
 
-    res.status(200).json({
-      status: "Success",
-      requestAt: req.requestTime,
-      data: {
-        user,
-      },
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: "fail",
-      message: {
-        error,
-      },
-    });
-  }
-};
+//     res.status(200).json({
+//       status: "Success",
+//       requestAt: req.requestTime,
+//       data: {
+//         user,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(400).json({
+//       status: "fail",
+//       message: {
+//         error,
+//       },
+//     });
+//   }
+// };
+
+module.exports.updateUser = updateOne(User);
 
 module.exports.deleteMe = async (req, res, next) => {
   // 1] when want to delete => dont need delete out of db, only can set inactive this
@@ -130,21 +138,4 @@ module.exports.deleteMe = async (req, res, next) => {
   });
 };
 
-module.exports.deleteUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      status: "Success",
-      requestAt: req.requestTime,
-      message: "You delete success",
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: "fail",
-      message: {
-        error,
-      },
-    });
-  }
-};
+module.exports.deleteUser = deleteOne(User);

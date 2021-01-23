@@ -1,9 +1,11 @@
 const Review = require("../model/reviews.model");
+const { deleteOne, updateOne } = require("./handleFactory");
 
 module.exports.getAllReviews = async (req, res) => {
   try {
     let filter = {};
     if (req.params.tourId) filter = { tour: req.params.tourId };
+
     const reviews = await Review.find(filter);
 
     if (reviews.length === 0)
@@ -48,3 +50,7 @@ module.exports.createReview = async (req, res) => {
     });
   }
 };
+
+module.exports.deleteReview = deleteOne(Review);
+
+module.exports.updateReview = updateOne(Review);

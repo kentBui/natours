@@ -14,7 +14,9 @@ const {
   getAllUsers,
   updateMe,
   deleteMe,
+  getMe,
 } = require("../controllers/users.controller");
+const userModel = require("../model/user.model");
 
 const router = express.Router();
 
@@ -33,6 +35,8 @@ router.patch("/updateMyPassword", requireSignin, updatedPassword);
 router.patch("/updateMe", requireSignin, updateMe);
 
 router.delete("/deleteMe", requireSignin, deleteMe);
+
+router.get("/me", requireSignin, getMe, getOneUser);
 
 router.get("/:id", getOneUser);
 

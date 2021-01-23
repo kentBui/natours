@@ -126,6 +126,11 @@ const toursSchema = new mongoose.Schema(
 //   next();
 // });
 
+// create indexes
+// toursSchema.index({ price: 1 });
+toursSchema.index({ price: 1, ratingsAverage: -1 });
+toursSchema.index({ slug: 1 });
+
 toursSchema.virtual("durationWeeks").get(function () {
   // use real function, not use arrow func
   return this.duration / 7;
@@ -149,9 +154,8 @@ toursSchema.pre("save", function (next) {
   next();
 });
 
-toursSchema.post("save", function (doc, next) {
+toursSchema.post("save", function (doc) {
   console.log(doc);
-  next();
 });
 
 // query middleware
@@ -170,10 +174,9 @@ toursSchema.pre(/^find/, function (next) {
   next();
 });
 
-toursSchema.post(/^find/, function (doc, next) {
+toursSchema.post(/^find/, function (doc) {
   // console.log(doc);
   console.log(`Query took ${Date.now() - this.start} milisecons`);
-  next();
 });
 
 // aggregation middleware

@@ -29,7 +29,19 @@ router.get("/top-5-tours", aliasTopTours, getAllTours);
 
 router.get("/tour-stats", getTourStats);
 
-router.get("/monthly-plan/:year", getMonthlyPlan);
+router.get(
+  "/monthly-plan/:year",
+  requireSignin,
+  restrictTo("admin", "lead-guide"),
+  getMonthlyPlan
+);
+
+router.post(
+  "/create",
+  requireSignin,
+  restrictTo("admin", "lead-guide"),
+  createTour
+);
 
 router.get("/:id", getOneTour);
 
@@ -46,7 +58,5 @@ router.delete(
   restrictTo("admin", "lead-guide"),
   deleteTour
 );
-
-router.post("/create", createTour);
 
 module.exports = router;

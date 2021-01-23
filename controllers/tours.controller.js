@@ -1,6 +1,7 @@
 const { query } = require("express");
 const Tour = require("../model/tours.model");
 const APIfeatures = require("../utilities/apifeatures");
+const { deleteOne, updateOne, createOne } = require("./handleFactory");
 
 module.exports.aliasTopTours = (req, res, next) => {
   //alias to fix req how to find 'top find' with condition
@@ -77,6 +78,7 @@ module.exports.getAllTours = async (req, res) => {
       .sort()
       .limitFields()
       .paginate();
+    // const tours = await feature.query.explain();// for see result and check info
     const tours = await feature.query;
 
     res.status(200).json({
@@ -118,66 +120,69 @@ module.exports.getOneTour = async (req, res) => {
   }
 };
 
-module.exports.updateTour = async (req, res) => {
-  try {
-    const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+// module.exports.updateTour = async (req, res) => {
+//   try {
+//     const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
+//       new: true,
+//       runValidators: true,
+//     });
 
-    res.status(200).json({
-      status: "success",
-      requestAt: req.requestTime,
-      result: 1,
-      data: {
-        tour,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: "fail",
-      message: err,
-    });
-  }
-};
+//     res.status(200).json({
+//       status: "success",
+//       requestAt: req.requestTime,
+//       result: 1,
+//       data: {
+//         tour,
+//       },
+//     });
+//   } catch (err) {
+//     res.status(400).json({
+//       status: "fail",
+//       message: err,
+//     });
+//   }
+// };
+module.exports.updateTour = updateOne(Tour);
 
-module.exports.deleteTour = async (req, res) => {
-  try {
-    await Tour.findByIdAndDelete(req.params.id);
+// module.exports.deleteTour = async (req, res) => {
+//   try {
+//     await Tour.findByIdAndDelete(req.params.id);
 
-    res.status(204).json({
-      status: "success",
-      requestAt: req.requestTime,
-      result: 1,
-      data: null,
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: "fail",
-      message: err,
-    });
-  }
-};
+//     res.status(204).json({
+//       status: "success",
+//       requestAt: req.requestTime,
+//       result: 1,
+//       data: null,
+//     });
+//   } catch (err) {
+//     res.status(400).json({
+//       status: "fail",
+//       message: err,
+//     });
+//   }
+// };
+module.exports.deleteTour = deleteOne(Tour);
 
-module.exports.createTour = async (req, res) => {
-  try {
-    const { body } = req;
-    // console.log(body);
-    const newTour = await Tour.create(body);
-    res.status(200).json({
-      status: "success",
-      result: 1,
-      data: {
-        tour: newTour,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: "error",
-      message: err,
-    });
-  }
-};
+// module.exports.createTour = async (req, res) => {
+//   try {
+//     const { body } = req;
+//     // console.log(body);
+//     const newTour = await Tour.create(body);
+//     res.status(200).json({
+//       status: "success",
+//       result: 1,
+//       data: {
+//         tour: newTour,
+//       },
+//     });
+//   } catch (err) {
+//     res.status(400).json({
+//       status: "error",
+//       message: err,
+//     });
+//   }
+// };
+module.exports.createTour = createOne(Tour);
 
 // get tour stats useing aggregate pipeline
 module.exports.getTourStats = async (req, res) => {
