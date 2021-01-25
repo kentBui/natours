@@ -6,9 +6,16 @@ const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
+const path = require("path");
 
 const app = express();
 const upload = multer();
+
+app.set("view engine", "pug");
+app.set("views", path.join(__dirname, "views"));
+
+// app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, "public")));
 
 const AppError = require("./utilities/AppError");
 const { getRequestTime } = require("./middleware/common.middleware");
@@ -46,8 +53,6 @@ app.use(mongoSanitize());
 // data sanitization against xss
 app.use(xss());
 
-app.use(express.static(`${__dirname}/public`));
-
 app.use(helmet()); // helmet help you secure express app by setting various http header
 
 if (process.env.NODE_ENV === "develope") {
@@ -57,6 +62,25 @@ if (process.env.NODE_ENV === "develope") {
 app.use(getRequestTime);
 
 app.use(upload.none());
+
+app.get("/", (req, res) => {
+  res.render("base", {
+    title: "Exciting tours for adventurous people",
+  });
+});
+
+app.get("/overview", (req, res) => {
+  res.render("overview", {
+    title: "All Tours",
+  });
+});
+
+app.get("/tour", (req, res) => {
+  res.render("tour", {
+    title: "Tour details",
+    tour: "Tour 1 detail page",
+  });
+});
 
 app.use("/api", appLimit); // limit request from same ip
 

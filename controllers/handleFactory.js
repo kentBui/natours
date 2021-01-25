@@ -19,7 +19,7 @@ module.exports.deleteOne = (Model) => async (req, res) => {
   } catch (err) {
     res.status(400).json({
       status: "fail",
-      message: err,
+      message: err.message,
     });
   }
 };
@@ -34,7 +34,7 @@ module.exports.updateOne = (Model) => async (req, res) => {
     if (!doc)
       return res.status(400).json({
         status: "error",
-        message: "Do not fount document with that id",
+        message: "Do not found document with that id",
       });
 
     res.status(200).json({
@@ -48,7 +48,7 @@ module.exports.updateOne = (Model) => async (req, res) => {
   } catch (err) {
     res.status(400).json({
       status: "fail",
-      message: err,
+      message: err.message,
     });
   }
 };
@@ -75,7 +75,7 @@ module.exports.createOne = (Model) => async (req, res) => {
   } catch (err) {
     res.status(400).json({
       status: "error",
-      err,
+      message: err.message,
     });
   }
 };

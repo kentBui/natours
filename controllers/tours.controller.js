@@ -282,3 +282,80 @@ module.exports.getMonthlyPlan = async (req, res) => {
     });
   }
 };
+
+// router.get("/tours-within/:distance/center/:latlng/unit/:unit", getToursWithin);
+// /tours-distance?distance=222&center=-40,45&unit=mi
+// /tours-within/distance=222/latlng=-40,45/unit/mi
+module.exports.getToursWithin = async (req, res) => {
+  try {
+    const { distance, latlng, unit } = req.params;
+    // unit = mi or km
+
+    const radius = unit === "mi" ? distance / 3963.2 : distance / 6378.1;
+
+    const [lat, lng] = latlng.split(",");
+
+    if (!lat || !lng)
+      return res.status(400).json({
+        status: "error",
+        message: "Please provide latitude and longtitude in the format lat,lng",
+      });
+
+    const tours = await Tour.find({
+      startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
+    });
+
+    res.status(200).json({
+      status: "success",
+      result: tours.length,
+      data: {
+        tours,
+      },
+    });
+  } catch (error) {
+    return res.status(400).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+};
+
+module.exports.getDistance = async (req, res) => {
+  try {
+    const { latlng, unit } = req.params;
+    // unit = mi or km
+
+    const [lat, lng] = latlng.split(",");
+
+    if (!lat || !lng)
+      return res.status(400).json({
+        status: "error",
+        message: "Please provide latitude and longtitude in the format lat,lng",
+      });
+
+    //BUG dont find distances
+    const distance = await Tour.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [lng * 1, lat * 1] },
+          distanceField: "distance",
+          spherical: true,
+        },
+      },
+    ]);
+    console.log(distance);
+
+    res.status(200).json({
+      status: "success",
+      result: distance.length,
+      data: {
+        distance,
+      },
+    });
+  } catch (error) {
+    return res.status(400).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+};
