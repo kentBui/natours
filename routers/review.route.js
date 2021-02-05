@@ -14,7 +14,7 @@ const router = express.Router({ mergeParams: true });
 // GET / tour/1234/reviews
 // POST /reviews
 
-router.get("/", requireSignin, getAllReviews);
+router.get("/", getAllReviews);
 
 router.post("/", requireSignin, restrictTo("user"), createReview);
 

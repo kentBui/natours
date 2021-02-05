@@ -7,6 +7,8 @@ const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 const path = require("path");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const upload = multer();
@@ -42,6 +44,7 @@ const appLimit = rateLimit({
 const toursRoute = require("./routers/tours.route");
 const usersRoute = require("./routers/users.route");
 const reviewRoute = require("./routers/review.route");
+const viewRoute = require("./routers/viewRoute");
 const { gobalErrorHandle } = require("./controllers/error.controler");
 const { requireSignin } = require("./controllers/auth.controler");
 
@@ -55,38 +58,46 @@ app.use(xss());
 
 app.use(helmet()); // helmet help you secure express app by setting various http header
 
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+app.use(cookieParser());
+app.use((req, res, next) => {
+  console.log(req.cookies.jwt);
+  next();
+});
+
 if (process.env.NODE_ENV === "develope") {
   app.use(morgan("dev"));
 }
 
 app.use(getRequestTime);
+app.use(function (req, res, next) {
+  res.setHeader(
+    "Content-Security-Policy",
+    "script-src 'self' https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"
+    // "script-src 'self' https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.js https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.css"
+  );
+  next();
+});
 
 app.use(upload.none());
 
-app.get("/", (req, res) => {
-  res.render("base", {
-    title: "Exciting tours for adventurous people",
-  });
-});
-
-app.get("/overview", (req, res) => {
-  res.render("overview", {
-    title: "All Tours",
-  });
-});
-
-app.get("/tour", (req, res) => {
-  res.render("tour", {
-    title: "Tour details",
-    tour: "Tour 1 detail page",
-  });
-});
+app.use("/", viewRoute);
 
 app.use("/api", appLimit); // limit request from same ip
 
-app.use("/api/v1/tours", requireSignin, toursRoute);
+app.use("/api/v1/tours", toursRoute);
 app.use("/api/v1/users", usersRoute);
 app.use("/api/v1/reviews", reviewRoute);
+
+app.post("/getcookie", (req, res) => {
+  res.cookie("id", "123456");
+  res.send("hello");
+});
 
 // handling unhandle routers
 app.all("*", (req, res, next) => {

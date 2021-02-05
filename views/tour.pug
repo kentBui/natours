@@ -1,5 +1,103 @@
 extends base
 
+block append head
+  //- script(src='/js/mapbox.js')
+  script(src='https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.js')
+  link(href='https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.css' rel='stylesheet')
+  
+  //- link(rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="")
+  //- script(src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin="")
+
+
+
+mixin overViewFact(desc, text, icon)
+  .overview-box__detail
+    svg.overview-box__icon
+      use(xlink:href=`/img/icons.svg#icon-${icon}`)
+    span.overview-box__label= desc
+    span.overview-box__text= text
+
+mixin overViewGuide(name, role, photo)
+  .overview-box__detail
+    img.overview-box__img(src=`/img/users/${photo}` alt=name)
+    - if (role === 'lead-guide')
+      span.overview-box__label Lead guide
+    - if (role === 'guide')
+      span.overview-box__label Tour guide
+    span.overview-box__text= name
+
+mixin review(review, name, photo, rating)
+  .reviews__card
+    .reviews__avatar
+      img.reviews__avatar-img(src=`/img/users/${photo}` alt= name)
+      h6.reviews__user= name
+    p.reviews__text= review
+    .reviews__rating
+      each star in [1,2,3,4,5]
+        - if(star <= rating)
+          svg.reviews__star.reviews__star--active
+            use(xlink:href="/img/icons.svg#icon-star")
+        - if(star > rating)
+          svg.reviews__star.reviews__star--inactive
+            use(xlink:href="/img/icons.svg#icon-star")
+
 block content
-  .section
-    h2= tour
+  section.section-header
+    .heading-box
+      h1.heading-primary
+        span= tour.name
+      .heading-box__group
+        .heading-box__detail
+          svg.heading-box__icon
+            use(xlink:href="/img/icons.svg#icon-clock")
+          span.heading-box__text=`${tour.duration} days`
+        .heading-box__detail
+          svg.heading-box__icon
+            use(xlink:href="/img/icons.svg#icon-map-pin")
+          span.heading-box__text= tour.startLocation.description
+  section.section-description
+    .overview-box
+      div
+        .overview-box__group
+          h2.heading-secondary.ma-bt-lg Quick facts
+
+          +overViewFact('Next date', tour.startDates[0].toLocaleString('en-us',{month:'long', year:'numeric'}), 'calendar')
+          +overViewFact('Difficulty', tour.difficulty, 'trending-up')
+          +overViewFact('Participants', `${tour.maxGroupSize} people`, 'user')
+          +overViewFact('Rating', `${tour.ratingsAverage} / 5`, 'star')
+
+        .overview-box__group
+          h2.heading-secondary.ma-bt-lg Your tour guides
+
+          each guide in tour.guides
+            +overViewGuide(guide.name, guide.role, guide.photo)
+
+    .description-box
+      h2.heading-secondary.ma-bt-lg= ` About ${tour.name} tour`
+      - const paragraphs = tour.description.split('\n');
+        each paragraph in paragraphs
+          p.description__text= paragraph
+        
+  section.section-pictures
+    each img, i in tour.images
+      .picture-box
+        img.picture-box__img(src=`/img/tours/${img}` alt=`${tour.name} ${i+1}` class=`picture-box__img--${i+1}`)
+    
+  section.section-map
+    #map(data-locations=`${JSON.stringify(tour.locations)}`)
+    
+  section.section-reviews
+    .reviews
+      each r in tour.reviews
+        +review(r.review, r.user.name, r.user.photo, r.rating)
+
+  section.section-cta
+    .cta
+      .cta__img.cta__img--logo
+        img(src="/img/logo-white.png" alt="Natours logo")
+      img.cta__img.cta__img--1(src="/img/tours/tour-5-2.jpg" alt="")
+      img.cta__img.cta__img--2(src="/img/tours/tour-5-1.jpg" alt="")
+      .cta__content
+        h2.heading-secondary What are you waiting for?
+        p.cta__text= `${tour.duration} days. 1 adventure. Infinite memories. Make it yours today!`
+        button.btn.btn--green.span-all-rows Book tour now!

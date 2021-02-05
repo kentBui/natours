@@ -19,10 +19,12 @@ const createAndSendToken = (user, statusCode, res) => {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 60 * 60 * 1000
     ),
-    httpOnly: true, //cannot access and modified in any way by the browser
+    httpOnly: false, //cannot access and modified in any way by the browser
+    sameSite: "none",
+    secure: true,
   };
 
-  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+  // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
 
   res.cookie("jwt", token, cookieOptions);
 
@@ -110,15 +112,24 @@ module.exports.signin = async (req, res) => {
 module.exports.requireSignin = async (req, res, next) => {
   // 1] get token and check it's there
   try {
+    let token;
     if (
       !req.headers.authorization ||
       !req.headers.authorization.startsWith("Bearer")
-    )
+    ) {
       return res.status(400).json({
         status: "error",
         message: "Authorization is required, please login to get access",
       });
-    const token = req.headers.authorization.split(" ")[1];
+    }
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (req.cookies.jwt) {
+      token = req.cookies.jwt;
+    }
 
     // 2] verification token
     // let decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -154,6 +165,32 @@ module.exports.requireSignin = async (req, res, next) => {
       error,
     });
   }
+};
+
+module.exports.isLoggedIn = async (req, res, next) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+
+    let decoded = await util.promisify(jwt.verify)(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    const currentUser = await User.findById(decoded.id);
+
+    if (!currentUser) return next();
+
+    if (currentUser.changedPasswordAfter(decoded.iat)) return next();
+
+    res.locals.user = currentUser;
+
+    next();
+  }
+
+  next();
 };
 
 module.exports.restrictTo = (...roles) => {
