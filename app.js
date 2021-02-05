@@ -1,7 +1,6 @@
 const express = require("express");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
-const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
@@ -11,7 +10,6 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
 const app = express();
-const upload = multer();
 
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "views"));
@@ -83,8 +81,6 @@ app.use(function (req, res, next) {
   );
   next();
 });
-
-app.use(upload.none());
 
 app.use("/", viewRoute);
 

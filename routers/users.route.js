@@ -1,4 +1,5 @@
 const express = require("express");
+
 const {
   signup,
   signin,
@@ -15,6 +16,7 @@ const {
   updateMe,
   deleteMe,
   getMe,
+  uploadPhoto,
 } = require("../controllers/users.controller");
 const userModel = require("../model/user.model");
 
@@ -32,7 +34,7 @@ router.patch("/resetPassword/:token", resetPassword);
 
 router.patch("/updateMyPassword", requireSignin, updatedPassword);
 
-router.patch("/updateMe", requireSignin, updateMe);
+router.patch("/updateMe", requireSignin, uploadPhoto, updateMe);
 
 router.delete("/deleteMe", requireSignin, deleteMe);
 

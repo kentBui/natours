@@ -167,32 +167,6 @@ module.exports.requireSignin = async (req, res, next) => {
   }
 };
 
-module.exports.isLoggedIn = async (req, res, next) => {
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-
-    let decoded = await util.promisify(jwt.verify)(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    const currentUser = await User.findById(decoded.id);
-
-    if (!currentUser) return next();
-
-    if (currentUser.changedPasswordAfter(decoded.iat)) return next();
-
-    res.locals.user = currentUser;
-
-    next();
-  }
-
-  next();
-};
-
 module.exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     // roles ['admin','lead-guide']

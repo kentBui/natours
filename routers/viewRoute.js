@@ -1,5 +1,4 @@
 const express = require("express");
-const { isLoggedIn } = require("../controllers/auth.controler");
 const {
   homePage,
   overviewPage,
@@ -8,8 +7,6 @@ const {
 } = require("../controllers/view.controller");
 
 const router = express.Router();
-
-router.use(isLoggedIn);
 
 router.get("/", overviewPage);
 

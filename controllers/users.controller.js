@@ -1,6 +1,31 @@
+const multer = require("multer");
 const User = require("../model/user.model");
 const APIfeatures = require("../utilities/apifeatures");
 const { deleteOne, updateOne } = require("./handleFactory");
+
+const multerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/img/users");
+  },
+  filename: function (req, file, cb) {
+    cb(null, `user-${req.user._id}-${Date.now()}-${file.originalname}`);
+  },
+});
+
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new Error("File upload does not image"));
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
+module.exports.uploadPhoto = upload.single("photo");
 
 const filterObj = (obj, ...alowFields) => {
   const newObj = {};
@@ -79,6 +104,8 @@ module.exports.updateMe = async (req, res, next) => {
     // only update name, email, address, description, image, one more thing
 
     const filteredBody = filterObj(req.body, "name", "email");
+    if (req.file) filteredBody.photo = req.file.filename;
+
     // 2] update user document
     const updateUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
       new: true,
