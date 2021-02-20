@@ -1,4 +1,5 @@
 const multer = require("multer");
+const sharp = require("sharp");
 const User = require("../model/user.model");
 const APIfeatures = require("../utilities/apifeatures");
 const { deleteOne, updateOne } = require("./handleFactory");
@@ -11,6 +12,8 @@ const multerStorage = multer.diskStorage({
     cb(null, `user-${req.user._id}-${Date.now()}-${file.originalname}`);
   },
 });
+
+// const multerStorage = multer.memoryStorage();
 
 const multerFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image")) {
@@ -26,6 +29,19 @@ const upload = multer({
 });
 
 module.exports.uploadPhoto = upload.single("photo");
+
+module.exports.resizePhoto = (req, file, next) => {
+  if (req.file) next();
+
+  req.file.filename = `user-${req.user._id}-${Date.now()}-${file.originalname}`;
+
+  sharp(req.file.buffer)
+    .resize(200, 200)
+    .toFile(
+      `public/img/users/user-${req.user._id}-${Date.now()}-${file.originalname}`
+    );
+  next();
+};
 
 const filterObj = (obj, ...alowFields) => {
   const newObj = {};

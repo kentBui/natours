@@ -4,6 +4,7 @@ module.exports.tourPage = async (req, res) => {
   try {
     // 1] get tour data from collections include reviews and guide
     const { tourId } = req.params;
+    const user = req.user;
 
     const tour = await Tour.findById(tourId).populate({
       path: "reviews",
@@ -17,6 +18,7 @@ module.exports.tourPage = async (req, res) => {
     res.render("tour", {
       title: `${tour.name} tour`,
       tour,
+      user,
     });
   } catch (error) {
     return res.status(400).json({
@@ -29,6 +31,7 @@ module.exports.tourPage = async (req, res) => {
 module.exports.overviewPage = async (req, res) => {
   try {
     // 1] get tour data from collections
+    const user = req.user;
     const tours = await Tour.find();
     // 2] building template
 
@@ -36,6 +39,7 @@ module.exports.overviewPage = async (req, res) => {
     res.render("overview", {
       title: "All Tours",
       tours,
+      user,
     });
   } catch (error) {
     return res.status(400).json({

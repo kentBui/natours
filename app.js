@@ -42,7 +42,9 @@ const appLimit = rateLimit({
 const toursRoute = require("./routers/tours.route");
 const usersRoute = require("./routers/users.route");
 const reviewRoute = require("./routers/review.route");
-const viewRoute = require("./routers/viewRoute");
+const viewRoute = require("./routers/view.route");
+const bookingRoute = require("./routers/booking.route");
+
 const { gobalErrorHandle } = require("./controllers/error.controler");
 const { requireSignin } = require("./controllers/auth.controler");
 
@@ -64,7 +66,7 @@ app.use(
 );
 app.use(cookieParser());
 app.use((req, res, next) => {
-  console.log(req.cookies.jwt);
+  // console.log(req.cookies.jwt);
   next();
 });
 
@@ -89,6 +91,7 @@ app.use("/api", appLimit); // limit request from same ip
 app.use("/api/v1/tours", toursRoute);
 app.use("/api/v1/users", usersRoute);
 app.use("/api/v1/reviews", reviewRoute);
+app.use("/api/v1/booking", bookingRoute);
 
 app.post("/getcookie", (req, res) => {
   res.cookie("id", "123456");

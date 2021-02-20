@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const util = require("util"); // create promisify or callbackify
 const jwt = require("jsonwebtoken");
 const User = require("../model/user.model");
-const sendEmail = require("../utilities/email");
+const Email = require("../utilities/email");
 
 const signToken = (user) => {
   return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -21,7 +21,7 @@ const createAndSendToken = (user, statusCode, res) => {
     ),
     httpOnly: false, //cannot access and modified in any way by the browser
     sameSite: "none",
-    secure: true,
+    // secure: true,
   };
 
   // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
@@ -43,6 +43,10 @@ module.exports.signup = async (req, res) => {
   try {
     const newUser = await User.create(req.body);
 
+    const url = `${req.protocol}://${req.get("host")}/me`;
+
+    console.log(url);
+    await new Email(newUser, url).sendWellcome();
     createAndSendToken(newUser, 201, res);
   } catch (error) {
     res.status(400).json({
@@ -113,7 +117,14 @@ module.exports.requireSignin = async (req, res, next) => {
   // 1] get token and check it's there
   try {
     let token;
-    if (
+    if (req.cookies.jwt) {
+      token = req.cookies.jwt;
+    } else if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (
       !req.headers.authorization ||
       !req.headers.authorization.startsWith("Bearer")
     ) {
@@ -122,14 +133,8 @@ module.exports.requireSignin = async (req, res, next) => {
         message: "Authorization is required, please login to get access",
       });
     }
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    } else if (req.cookies.jwt) {
-      token = req.cookies.jwt;
-    }
+
+    // console.log(token);
 
     // 2] verification token
     // let decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -164,6 +169,42 @@ module.exports.requireSignin = async (req, res, next) => {
       message: "Something went wrong, Please login again",
       error,
     });
+  }
+};
+
+module.exports.isLogedIn = async (req, res, next) => {
+  try {
+    let token;
+    if (req.cookies.jwt) {
+      token = req.cookies.jwt;
+    } else if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (
+      !req.headers.authorization ||
+      !req.headers.authorization.startsWith("Bearer")
+    ) {
+      return next();
+    }
+
+    let decoded = await util.promisify(jwt.verify)(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser) return next();
+
+    if (currentUser.changedPasswordAfter(decoded.iat)) return next();
+
+    req.user = currentUser;
+    console.log(currentUser);
+
+    next();
+  } catch (error) {
+    next();
   }
 };
 
@@ -202,18 +243,12 @@ module.exports.forgotPassword = async (req, res, next) => {
 
     // 3] send it to user's email
     // get url for reset pass
-    const resetURL = `${req.protocol}://${req.get(
+    const resetUrl = `${req.protocol}://${req.get(
       "host"
     )}/api/v1/users/resetPassword/${resetToken}`;
     // sending message
-    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to : ${resetURL}. \n If you didn't forget your password, please ignore this email!`;
     try {
-      // use nodemailer to send email
-      await sendEmail({
-        email: user.email,
-        subject: "Your password reset token (validated in 10 min)",
-        message,
-      });
+      await new Email(user, resetUrl).sendResetPassword();
 
       res.status(200).json({
         status: "success",

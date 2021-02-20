@@ -17,6 +17,7 @@ const {
   deleteMe,
   getMe,
   uploadPhoto,
+  resizePhoto,
 } = require("../controllers/users.controller");
 const userModel = require("../model/user.model");
 
