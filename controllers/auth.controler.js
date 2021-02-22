@@ -113,6 +113,18 @@ module.exports.signin = async (req, res) => {
   }
 };
 
+module.exports.logout = async (req, res) => {
+  res.cookie("jwt", "logout", {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+
+  res.status(200).json({
+    status: "success",
+    message: "Logout successful",
+  });
+};
+
 module.exports.requireSignin = async (req, res, next) => {
   // 1] get token and check it's there
   try {
@@ -202,7 +214,7 @@ module.exports.isLogedIn = async (req, res, next) => {
     req.user = currentUser;
     console.log(currentUser);
 
-    next();
+    return next();
   } catch (error) {
     next();
   }
@@ -326,6 +338,7 @@ module.exports.updatedPassword = async (req, res, next) => {
 
     // 2] check if posted password is correct
     const { oldPassword, newPassword, newPasswordConfirm } = req.body;
+    console.log({ oldPassword, newPassword, newPasswordConfirm });
     if (!oldPassword || !newPassword || !newPasswordConfirm) {
       return res.status(401).json({
         status: "error",

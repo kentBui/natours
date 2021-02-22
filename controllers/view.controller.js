@@ -1,4 +1,5 @@
 const Tour = require("../model/tours.model");
+const User = require("../model/user.model");
 
 module.exports.tourPage = async (req, res) => {
   try {
@@ -53,4 +54,44 @@ module.exports.loginPage = async (req, res) => {
   res.render("login", {
     name: "Kent",
   });
+};
+
+module.exports.mePage = async (req, res) => {
+  const user = req.user;
+  res.render("account", {
+    user,
+    title: "Your account",
+  });
+};
+
+module.exports.updateData = async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.render("account", {
+      user: updatedUser,
+      title: "Your account",
+    });
+
+    // if (!updatedUser)
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "Something went wrong when update user info",
+    //   });
+
+    // res.status(200).json({
+    //   status: "success",
+    //   data: {
+    //     user: updatedUser,
+    //   },
+    // });
+  } catch (error) {
+    res.status(400).json({
+      status: "fail",
+      message: error.message,
+    });
+  }
 };

@@ -7,6 +7,7 @@ const {
   resetPassword,
   requireSignin,
   updatedPassword,
+  logout,
 } = require("../controllers/auth.controler");
 const {
   updateUser,
@@ -29,13 +30,15 @@ router.post("/signup", signup); // create user
 
 router.post("/signin", signin); // login user
 
+router.get("/logout", logout);
+
 router.post("/forgotPassword", forgotPassword);
 
 router.patch("/resetPassword/:token", resetPassword);
 
-router.patch("/updateMyPassword", requireSignin, updatedPassword);
+router.post("/updateMyPassword", requireSignin, updatedPassword);
 
-router.patch("/updateMe", requireSignin, uploadPhoto, updateMe);
+router.post("/updateMe", requireSignin, uploadPhoto, updateMe);
 
 router.delete("/deleteMe", requireSignin, deleteMe);
 

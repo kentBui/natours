@@ -49,6 +49,7 @@ const { gobalErrorHandle } = require("./controllers/error.controler");
 const { requireSignin } = require("./controllers/auth.controler");
 
 app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // data sanitization against Nosql query injection
 app.use(mongoSanitize());

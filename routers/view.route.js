@@ -1,20 +1,24 @@
 const express = require("express");
-const { isLogedIn } = require("../controllers/auth.controler");
+const { isLogedIn, requireSignin } = require("../controllers/auth.controler");
 const {
   homePage,
   overviewPage,
   tourPage,
   loginPage,
+  mePage,
+  updateData,
 } = require("../controllers/view.controller");
 
 const router = express.Router();
 
-router.use(isLogedIn);
+router.get("/", isLogedIn, overviewPage);
 
-router.get("/", overviewPage);
+router.get("/tours/:tourId", isLogedIn, tourPage);
 
-router.get("/tours/:tourId", tourPage);
+router.get("/login", isLogedIn, loginPage);
 
-router.get("/login", loginPage);
+router.get("/me", requireSignin, mePage);
+
+router.post("/submit-user-data", requireSignin, updateData);
 
 module.exports = router;
