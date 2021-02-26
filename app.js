@@ -21,7 +21,7 @@ const AppError = require("./utilities/AppError");
 const { getRequestTime } = require("./middleware/common.middleware");
 
 mongoose
-  .connect(process.env.DATABASE_LOCAL, {
+  .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useCreateIndex: true,
     useFindAndModify: true,
@@ -79,7 +79,7 @@ app.use(getRequestTime);
 app.use(function (req, res, next) {
   res.setHeader(
     "Content-Security-Policy",
-    "script-src 'self' https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"
+    "script-src 'self' https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js https://api.mapbox.com/*"
     // "script-src 'self' https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.js https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.css"
   );
   next();

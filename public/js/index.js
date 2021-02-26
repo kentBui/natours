@@ -2,11 +2,20 @@ import "@babel/polyfill";
 import { login, logout } from "./auth";
 import { updateSettingData, updatePasswordData } from "./updateSettings";
 
+import stripe from "stripe";
+
+console.log(
+  stripe(
+    "sk_test_51IMOAIIAMKHowpZalkIzHJND1kaYy84zXSMi7j8lhm4b5UkAnoK81SZ951sSwOSVio7GygOWgvhJFuo3nKOxZ2Zy00e263c0wr"
+  )
+);
+
 //Dom elements
 const loginForm = document.querySelector(".form--login");
 const logoutEl = document.getElementById("logout");
 const userDataForm = document.querySelector(".form-user-data");
 const userPassForm = document.querySelector(".form-user-settings");
+const bookTour = document.getElementById("book-tour");
 
 // delegation
 
@@ -55,3 +64,5 @@ if (userPassForm) {
     document.querySelector(".btn--save-password").innerHTML = "Save password";
   });
 }
+
+console.log(bookTour);
