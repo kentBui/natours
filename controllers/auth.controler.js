@@ -3,6 +3,8 @@ const util = require("util"); // create promisify or callbackify
 const jwt = require("jsonwebtoken");
 const User = require("../model/user.model");
 const Email = require("../utilities/email");
+const catchAsync = require("../utilities/catchAsync");
+const AppError = require("../utilities/AppError");
 
 const signToken = (user) => {
   return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -39,79 +41,58 @@ const createAndSendToken = (user, statusCode, res) => {
   });
 };
 
-module.exports.signup = async (req, res) => {
-  try {
-    const newUser = await User.create(req.body);
+// const catchAsync = (fn) => {
+//   return (req, res, next) => {
+//     fn(req, res, next).catch(next);
+//   };
+// };
 
-    const url = `${req.protocol}://${req.get("host")}/me`;
+module.exports.signup = catchAsync(async (req, res) => {
+  const newUser = await User.create(req.body);
 
-    console.log(url);
-    await new Email(newUser, url).sendWellcome();
-    createAndSendToken(newUser, 201, res);
-  } catch (error) {
-    res.status(400).json({
-      status: "fail",
-      message: "some thing went wrong",
-      error,
-    });
+  const url = `${req.protocol}://${req.get("host")}/me`;
+
+  console.log(url);
+  await new Email(newUser, url).sendWellcome();
+  createAndSendToken(newUser, 201, res);
+});
+
+module.exports.signin = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  // 1] check email and password exist
+
+  if (!email || !password) {
+    return next(new AppError("You need enter enail or password", 400));
   }
-};
+  // 2] check if user exists && password is correct
 
-module.exports.signin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const user = await User.findOne({ email }).select("+password");
+  // console.log(user);
+  // ] dont find user with email
+  if (!user) return next(new AppError("Incorrect email", 400));
 
-    // 1] check email and password exist
+  const correct = await user.correctPassword(password, user.password);
 
-    if (!email || !password) {
-      return res.status(400).json({
-        status: "fail",
-        message: "You need enter enail or password",
-      });
-    }
-    // 2] check if user exists && password is correct
+  if (!correct) return next(new AppError("Incorrect password", 400));
 
-    const user = await User.findOne({ email }).select("+password");
-    // console.log(user);
-    // ] dont find user with email
-    if (!user)
-      return res.status(401).json({
-        status: "fail",
-        message: "Incorrect email",
-      });
+  // 3] if everything is ok send token to client
+  // let token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+  //   expiresIn: process.env.JWT_EXPIRES_IN, //
+  // });
 
-    const correct = await user.correctPassword(password, user.password);
+  // let decoded = jwt.verify(token, process.env.JWT_SECRET);
+  // console.log(decoded);
 
-    if (!correct)
-      return res.status(401).json({
-        status: "fail",
-        message: "Incorrect password",
-      });
+  // res.status(200).json({
+  //   status: "success",
+  //   data: {
+  //     token,
+  //   },
+  // });
 
-    // 3] if everything is ok send token to client
-    // let token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    //   expiresIn: process.env.JWT_EXPIRES_IN, //
-    // });
-
-    // let decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log(decoded);
-
-    // res.status(200).json({
-    //   status: "success",
-    //   data: {
-    //     token,
-    //   },
-    // });
-
-    createAndSendToken(user, 200, res);
-  } catch (error) {
-    res.status(400).json({
-      status: "fail",
-      message: "some thing went wrong",
-      error,
-    });
-  }
-};
+  createAndSendToken(user, 200, res);
+});
 
 module.exports.logout = async (req, res) => {
   res.cookie("jwt", "logout", {
@@ -125,64 +106,48 @@ module.exports.logout = async (req, res) => {
   });
 };
 
-module.exports.requireSignin = async (req, res, next) => {
+module.exports.requireSignin = catchAsync(async (req, res, next) => {
   // 1] get token and check it's there
-  try {
-    let token;
-    if (req.cookies.jwt) {
-      token = req.cookies.jwt;
-    } else if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    } else if (
-      !req.headers.authorization ||
-      !req.headers.authorization.startsWith("Bearer")
-    ) {
-      return res.status(400).json({
-        status: "error",
-        message: "Authorization is required, please login to get access",
-      });
-    }
 
-    // console.log(token);
-
-    // 2] verification token
-    // let decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log(decoded);
-    let decoded = await util.promisify(jwt.verify)(
-      token,
-      process.env.JWT_SECRET
+  let token;
+  if (req.cookies.jwt) {
+    token = req.cookies.jwt;
+  } else if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  } else if (
+    !req.headers.authorization ||
+    !req.headers.authorization.startsWith("Bearer")
+  ) {
+    return next(
+      new AppError("Authorization is required, please login to get access", 400)
     );
-    // need to remember
-
-    // 3] check if user still exists
-    const currentUser = await User.findById(decoded.id);
-    if (!currentUser)
-      return res.status(403).json({
-        status: "fail",
-        message: "The user doest not exist",
-      });
-
-    // 4] check if user change password of the token was issued
-    if (currentUser.changedPasswordAfter(decoded.iat))
-      return res.status(401).json({
-        status: "error",
-        message: "User recently changed password, Pease login again",
-      });
-
-    req.user = currentUser;
-
-    next();
-  } catch (error) {
-    res.status(401).json({
-      status: "fail",
-      message: "Something went wrong, Please login again",
-      error,
-    });
   }
-};
+
+  // console.log(token);
+
+  // 2] verification token
+  // let decoded = jwt.verify(token, process.env.JWT_SECRET);
+  // console.log(decoded);
+  let decoded = await util.promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  // need to remember
+
+  // 3] check if user still exists
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) return next(new AppError("The user doest not exist", 400));
+
+  // 4] check if user change password of the token was issued
+  if (currentUser.changedPasswordAfter(decoded.iat))
+    return next(
+      new AppError("User recently changed password, Pease login again", 400)
+    );
+
+  req.user = currentUser;
+
+  next();
+});
 
 module.exports.isLogedIn = async (req, res, next) => {
   try {
@@ -226,16 +191,15 @@ module.exports.restrictTo = (...roles) => {
     // default 'user'
 
     if (!roles.includes(req.user.role))
-      return res.status(403).json({
-        status: "error",
-        message: "You do not have permission to perform this action",
-      });
+      return next(
+        new AppError("You do not have permission to perform this action", 400)
+      );
 
     next();
   };
 };
 
-module.exports.forgotPassword = async (req, res, next) => {
+module.exports.forgotPassword = catchAsync(async (req, res, next) => {
   try {
     // 1] get user based on posted email
     const user = await User.findOne({ email: req.body.email });
@@ -286,86 +250,59 @@ module.exports.forgotPassword = async (req, res, next) => {
       error,
     });
   }
-};
+});
 
-module.exports.resetPassword = async (req, res, next) => {
-  try {
-    // 1] get user based on the token
-    // console.log(req.params.token);
-    const hasdedToken = crypto
-      .createHash("sha256")
-      .update(req.params.token)
-      .digest("hex");
+module.exports.resetPassword = catchAsync(async (req, res, next) => {
+  // 1] get user based on the token
+  // console.log(req.params.token);
+  const hasdedToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
 
-    const user = await User.findOne({
-      passwordResetToken: hasdedToken,
-      passwordResetExpires: { $gt: Date.now() },
-    });
-    // console.log(user);
+  const user = await User.findOne({
+    passwordResetToken: hasdedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+  // console.log(user);
 
-    // 2] if token has not expired, and there is user set the new password
-    if (!user)
-      return res.status(400).json({
-        status: "error",
-        message: "Token is invalid or has expired",
-      });
+  // 2] if token has not expired, and there is user set the new password
+  if (!user) return next(new AppError("Token is invalid or has expired", 400));
 
-    user.password = req.body.password;
-    user.passwordConfirm = req.body.passwordConfirm;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    // user.passwordChangedAt = new Date()
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  // user.passwordChangedAt = new Date()
 
-    await user.save();
-    // 3] update changedpasswordat property for the user
+  await user.save();
+  // 3] update changedpasswordat property for the user
 
-    // 4] log the user in, sen jwt
-    createAndSendToken(user, 200, res);
-  } catch (error) {
-    res.status(401).json({
-      status: "fail",
-      message: "Something went wrong, Please send email again",
-      error,
-    });
+  // 4] log the user in, sen jwt
+  createAndSendToken(user, 200, res);
+});
+
+module.exports.updatedPassword = catchAsync(async (req, res, next) => {
+  // 1] get user from collection
+  console.log(req.user);
+  const user = await User.findById(req.user.id).select("+password");
+
+  // 2] check if posted password is correct
+  const { oldPassword, newPassword, newPasswordConfirm } = req.body;
+  console.log({ oldPassword, newPassword, newPasswordConfirm });
+  if (!oldPassword || !newPassword || !newPasswordConfirm) {
+    return next(new AppError("Your need enter old or new password", 400));
   }
-};
-
-module.exports.updatedPassword = async (req, res, next) => {
-  try {
-    // 1] get user from collection
-    console.log(req.user);
-    const user = await User.findById(req.user.id).select("+password");
-
-    // 2] check if posted password is correct
-    const { oldPassword, newPassword, newPasswordConfirm } = req.body;
-    console.log({ oldPassword, newPassword, newPasswordConfirm });
-    if (!oldPassword || !newPassword || !newPasswordConfirm) {
-      return res.status(401).json({
-        status: "error",
-        message: "Your need enter old or new password",
-      });
-    }
-
-    if (!(await user.correctPassword(oldPassword, user.password))) {
-      return res.status(401).json({
-        status: "error",
-        message: "Your current password is wrong",
-      });
-    }
-
-    // 3] if so, update password
-    user.password = newPassword;
-    user.passwordConfirm = newPasswordConfirm;
-
-    await user.save();
-
-    // 4] log user in send jwt
-    createAndSendToken(user, 200, res);
-  } catch (error) {
-    res.status(401).json({
-      status: "fail",
-      message: "Something went wrong, Please send password again",
-      error,
-    });
+  if (!(await user.correctPassword(oldPassword, user.password))) {
+    return next(new AppError("Your current password is wrong", 400));
   }
-};
+
+  // 3] if so, update password
+  user.password = newPassword;
+  user.passwordConfirm = newPasswordConfirm;
+
+  await user.save();
+
+  // 4] log user in send jwt
+  createAndSendToken(user, 200, res);
+});
